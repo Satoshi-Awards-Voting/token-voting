@@ -6,7 +6,7 @@
   "bin": {
     "token-voting": "./bin/run"
   },
-  "bugs": "https://github.com/Bitcoin-com/bch-cli-wallet",
+  "bugs": "https://github.com/Satoshi-Awards-Voting/token-voting",
   "dependencies": {
     "@chris.troutner/bch-js": "^1.4.18",
     "@oclif/command": "^1.5.4",
@@ -47,7 +47,7 @@
     "/src",
     "/wallets"
   ],
-  "homepage": "https://github.com/Bitcoin-com/bch-cli-wallet",
+  "homepage": "https://github.com/Satoshi-Awards-Voting/token-voting",
   "keywords": [
     "oclif"
   ],
@@ -55,12 +55,12 @@
   "main": "src/index.js",
   "oclif": {
     "commands": "./src/commands",
-    "bin": "bch-cli-wallet",
+    "bin": "token-voting",
     "plugins": [
       "@oclif/plugin-help"
     ]
   },
-  "repository": "Bitcoin-com/bch-cli-wallet",
+  "repository": "Satoshi-Awards-Voting/token-voting",
   "scripts": {
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "oclif-dev manifest && oclif-dev readme",

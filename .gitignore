@@ -8,3 +8,5 @@ node_modules
 wallets/*.json
 /coverage
 orbitdb/
+
+public-addresses.json
