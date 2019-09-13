@@ -10,3 +10,4 @@ wallets/*.json
 orbitdb/
 
 public-addresses.json
+json/

@@ -6,6 +6,7 @@ const AppUtils = require("../util")
 const appUtils = new AppUtils()
 
 const collect = require("collect.js")
+const fs = require("fs")
 
 const config = require("../../config")
 const BITBOX = new config.BCHLIB({ restURL: config.MAINNET_REST })
@@ -36,15 +37,23 @@ class ScanForSweeps extends Command {
       const addrList = appUtils.openWallet(filename)
       //console.log(`addrList: ${JSON.stringify(addrList, null, 2)}`)
 
+      // Open the file containing saved previously swept addresses.
+      let sweptAddrs = require(`${__dirname}/../../json/swept-addrs.json`)
+
       // Break the input array into chunks for 20 elements.
       const chunks = collect(addrList).chunk(20)
       //console.log(`chunks: ${JSON.stringify(chunks, null, 2)}`)
 
-      const sweptAddrs = collect([])
-
       // Loop through each chunk.
-      for (let i = 0; i < 1; i++) {
-        const thisChunk = chunks.items[i].items
+      for (let i = 0; i < chunks.items.length; i++) {
+        console.log(`Scanning chunk ${i}...`)
+
+        let thisChunk = chunks.items[i].items
+
+        // Remove any addresses that match our saved list of swept addresses.
+        thisChunk = thisChunk.filter(function(el) {
+          return !sweptAddrs.includes(el)
+        })
 
         // Get the details for each address.
         // Dev Note: balance is the 'confirmed' balance. 'unconfirmedBalance'
@@ -67,11 +76,19 @@ class ScanForSweeps extends Command {
 
         // Get just the address from the details.
         const newSweptAddrs = sweptAddrsDetected.map(x => x.cashAddress)
-        console.log(`newSweptAddrs: ${JSON.stringify(newSweptAddrs)}`)
+        // console.log(`newSweptAddrs: ${JSON.stringify(newSweptAddrs)}`)
 
         // Add any newly detected
-        sweptAddrs.concat(newSweptAddrs)
+        sweptAddrs = sweptAddrs.concat(newSweptAddrs)
+        // console.log(`sweptAddrs: ${JSON.stringify(sweptAddrs, null, 2)}`)
+
+        // Pause between loops to prevent rate limiting.
+        await sleep(1000)
       }
+
+      // Save the swept addresses to a json file.
+      const saveFilename = `${__dirname}/../../json/swept-addrs.json`
+      await this.saveData(saveFilename, sweptAddrs)
     } catch (err) {
       console.error(`Error in scan-for-sweeps: `, err)
     }
@@ -86,27 +103,19 @@ class ScanForSweeps extends Command {
     if (!file || file === "")
       throw new Error(`You must specify a wallet with the -f flag.`)
 
-    // const qty = flags.qty
-    // if (isNaN(Number(qty)))
-    //   throw new Error(`You must specify a quantity of tokens with the -q flag.`)
-    //
-    // const sendAddr = flags.sendAddr
-    // if (!sendAddr || sendAddr === "")
-    //   throw new Error(`You must specify a send-to address with the -a flag.`)
-    //
-    // const tokenId = flags.tokenId
-    // if (!tokenId || tokenId === "")
-    //   throw new Error(`You must specifcy the SLP token ID`)
-    //
-    // // check Token Id should be hexademical chracters.
-    // const re = /^([A-Fa-f0-9]{2}){32,32}$/
-    // if (typeof tokenId !== "string" || !re.test(tokenId)) {
-    //   throw new Error(
-    //     "TokenIdHex must be provided as a 64 character hex string."
-    //   )
-    // }
-
     return true
+  }
+
+  // Save a object to a json file.
+  saveData(filename, data) {
+    return new Promise((resolve, reject) => {
+      fs.writeFile(filename, JSON.stringify(data, null, 2), function(err) {
+        if (err) return reject(console.error(err))
+
+        //console.log(`${name}.json written successfully.`)
+        return resolve()
+      })
+    })
   }
 }
 
