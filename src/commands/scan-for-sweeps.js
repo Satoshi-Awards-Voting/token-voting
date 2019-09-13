@@ -5,7 +5,21 @@ const { Command, flags } = require("@oclif/command")
 const AppUtils = require("../util")
 const appUtils = new AppUtils()
 
+const collect = require("collect.js")
+
+const config = require("../../config")
+const BITBOX = new config.BCHLIB({ restURL: config.MAINNET_REST })
+
+// Promise based sleep function.
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 class ScanForSweeps extends Command {
+  constructor(argv, config) {
+    super(argv, config)
+
+    this.BITBOX = BITBOX
+  }
+
   async run() {
     const { flags } = this.parse(ScanForSweeps)
 
@@ -17,11 +31,47 @@ class ScanForSweeps extends Command {
 
   async scanForSweeps(flags) {
     try {
-      console.log(`hello world`)
-
+      // Open the file containing the array of addresses to scan.
       const filename = `${__dirname}/../../${flags.file}`
       const addrList = appUtils.openWallet(filename)
-      console.log(`addrList: ${JSON.stringify(addrList, null, 2)}`)
+      //console.log(`addrList: ${JSON.stringify(addrList, null, 2)}`)
+
+      // Break the input array into chunks for 20 elements.
+      const chunks = collect(addrList).chunk(20)
+      //console.log(`chunks: ${JSON.stringify(chunks, null, 2)}`)
+
+      const sweptAddrs = collect([])
+
+      // Loop through each chunk.
+      for (let i = 0; i < 1; i++) {
+        const thisChunk = chunks.items[i].items
+
+        // Get the details for each address.
+        // Dev Note: balance is the 'confirmed' balance. 'unconfirmedBalance'
+        // will be a negative value when the ticket is swept.
+        const details = await this.BITBOX.Address.details(thisChunk)
+        //console.log(`details: ${JSON.stringify(details, null, 2)}`)
+
+        // Filter out just the addresses that match the criteria that indicate
+        // the ticket has been swept.
+        const sweptAddrsDetected = details.filter(x => {
+          // Ticket has been swept and at least 1 block confirmation has occured.
+          const confirmedSweep = x.balance === 0.0 && x.transactions.length > 0
+
+          // Ticket has been swept, but has not been confirmed.
+          const unconfirmedSweep = x.balanceSat + x.unconfirmedBalanceSat === 0
+
+          return confirmedSweep || unconfirmedSweep
+        })
+        //console.log(`sweptAddrsDetected: ${JSON.stringify(sweptAddrsDetected, null, 2)}`)
+
+        // Get just the address from the details.
+        const newSweptAddrs = sweptAddrsDetected.map(x => x.cashAddress)
+        console.log(`newSweptAddrs: ${JSON.stringify(newSweptAddrs)}`)
+
+        // Add any newly detected
+        sweptAddrs.concat(newSweptAddrs)
+      }
     } catch (err) {
       console.error(`Error in scan-for-sweeps: `, err)
     }
