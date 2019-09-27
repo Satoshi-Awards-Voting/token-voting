@@ -1,3 +1,11 @@
+/*
+  This command expects the user to specify a json file as input that contains
+  an array of public addresses to be scanned.
+
+  The command scans the addresses to see if any of them have been 'swept'. If any
+  are detected, it will send them voting tokens.
+*/
+
 "use strict"
 
 const { Command, flags } = require("@oclif/command")
